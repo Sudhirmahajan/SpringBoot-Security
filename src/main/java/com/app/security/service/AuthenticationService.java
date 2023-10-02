@@ -40,23 +40,13 @@ public class AuthenticationService {
     private final PrivilegeRepository privilegeRepository;
 
     public AuthenticationResponse register(RegisterRequest payload) {
-    /*var user = User.builder()
-            .userCode(payload.getUserCode())
-            .firstName(payload.getFirstname())
-            .lastName(payload.getLastname())
-            .email(payload.getEmail())
-            .password(passwordEncoder.encode(payload.getPassword()))
-            .roles(payload.getRole())
-            .build();*/
         User user = new User();
-
-        List<String> privileges = Arrays.asList("TEST:PRIVILEGE");
+        List<String> privileges = Arrays.asList("user:read", "user:create", "user:update", "user:delete");
         //privilegeRepository.findAll().stream().map(Privilege::getPermission).distinct().collect(Collectors.toList());
         List<Role> roleList = new ArrayList<>();
         for (Role rol : payload.getRole()) {
             Role roles = new Role();
             roles.setName(rol.getName());
-            // roles.setUsers(Arrays.asList(user));
             List<Privilege> privilegeList = new ArrayList<>();
             for (String privilege : privileges) {
                 Privilege privilege1 = new Privilege();
@@ -66,7 +56,6 @@ public class AuthenticationService {
             roles.setPrivileges(privilegeList);
             roleList.add(roles);
         }
-
         user.setUserCode(payload.getUserCode());
         user.setFirstName(payload.getFirstname());
         user.setLastName(payload.getLastname());
@@ -85,7 +74,6 @@ public class AuthenticationService {
         var jwtToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
         saveUserToken(savedUser, jwtToken);
-
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
@@ -112,7 +100,8 @@ public class AuthenticationService {
     }
 
     private void saveUserToken(User user, String jwtToken) {
-        var token = Token.builder()
+        var token = Token
+                .builder()
                 .user(user)
                 .token(jwtToken)
                 .tokenType(TokenType.BEARER)

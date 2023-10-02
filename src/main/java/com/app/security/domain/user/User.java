@@ -7,6 +7,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Builder
 @NoArgsConstructor
@@ -36,19 +37,16 @@ public class User implements UserDetails {
             inverseJoinColumns =@JoinColumn(name = "role_id", referencedColumnName = "roleId"))
     private Collection<Role> roles = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user")
-    private List<Token> token;
+    /*@OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    private List<Token> token;*/
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<GrantedAuthority> authorities = new HashSet<GrantedAuthority>(roles.size());
+        final Set<GrantedAuthority> authorities = new HashSet<GrantedAuthority>(roles.size());
         for (Role role : roles)
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role)
-            );
-
+            authorities.addAll(role.getAuthorities());
         return authorities;
     }
-
     @Override
     public String getPassword() {
         return password;
@@ -77,5 +75,15 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "userCode='" + userCode + '\'' +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                '}';
     }
 }

@@ -37,6 +37,7 @@ public class JwtService {
     //2 extractClaim generic
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {
         final Claims claims = extractAllClaims(token);
+        System.out.println("printing user code from claims :" + claims.getSubject());
         return claimResolver.apply(claims);
     }
 

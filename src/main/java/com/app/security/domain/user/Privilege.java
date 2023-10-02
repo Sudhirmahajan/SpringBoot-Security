@@ -18,6 +18,14 @@ public class Privilege {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long privilegeId;
     private String permission;
-    @ManyToMany(mappedBy = "privileges", fetch = FetchType.EAGER)
-    private Collection<Role> roles;
+    /*@ManyToMany(mappedBy = "privileges", fetch = FetchType.EAGER)
+    private Collection<Role> roles;*/
+
+    @Override
+    public String toString() {
+        return "Privilege{" +
+                "privilegeId=" + privilegeId +
+                ", permission='" + permission + '\'' +
+                '}';
+    }
 }

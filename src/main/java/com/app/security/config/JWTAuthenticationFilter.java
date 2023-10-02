@@ -52,10 +52,13 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         if (userCode != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userCode);
+            System.out.println("printing authorities :" +userDetails.getAuthorities());
             var isTokenValid = tokenRepository.findByToken(jwt)
                     .map(t -> !t.isExpired() && !t.isRevoked())
                     .orElse(false);
+            System.out.println("Token status :" +isTokenValid);
             if (jwtService.isTokenValid(jwt, userDetails) && Boolean.TRUE.equals(isTokenValid)) {
+                System.out.println("printing authorities :" +userDetails.getAuthorities());
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,

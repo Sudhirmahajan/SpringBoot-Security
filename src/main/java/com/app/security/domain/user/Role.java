@@ -20,8 +20,8 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long roleId;
 
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER)
-    private Collection<User> users;
+    /*@ManyToMany(mappedBy = "roles", fetch = FetchType.EAGER)
+    private Collection<User> users;*/
 
     private String name;
 
@@ -29,7 +29,8 @@ public class Role {
     @JoinTable(
             name = "roles_privileges",
             joinColumns = @JoinColumn(name = "role_id", referencedColumnName = "roleId"),
-            inverseJoinColumns =@JoinColumn(name = "privilege_id", referencedColumnName = "privilegeId")
+            inverseJoinColumns =@JoinColumn(name = "privilege_id", referencedColumnName = "privilegeId"
+            )
     )
     private Collection<Privilege> privileges = new ArrayList<>();
 
@@ -38,7 +39,16 @@ public class Role {
                 .stream()
                 .map(privilege -> new SimpleGrantedAuthority(privilege.getPermission()))
                 .collect(Collectors.toList());
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + this.name));
+        authorities.add(new SimpleGrantedAuthority( this.name));
         return authorities;
+    }
+
+
+    @Override
+    public String toString() {
+        return "Role{" +
+                "roleId=" + roleId +
+                ", name='" + name + '\'' +
+                '}';
     }
 }

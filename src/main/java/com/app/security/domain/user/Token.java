@@ -20,7 +20,7 @@ public class Token {
     private TokenType tokenType = TokenType.BEARER;
     private boolean revoked;
     private boolean expired;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
     private User user;
 }

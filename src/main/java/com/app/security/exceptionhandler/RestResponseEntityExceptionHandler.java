@@ -60,7 +60,12 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
     @ExceptionHandler({Exception.class})
     public ResponseEntity<Object> handleInternal(final RuntimeException ex, final WebRequest request) {
         logger.error("500 Status Code", ex);
-        final GenericResponse bodyOfResponse = new GenericResponse(messages.getMessage("message.error", null, request.getLocale()), "InternalError");
+        GenericResponse bodyOfResponse = null;
+        if(null != messages && null != messages.getMessage("message.error", null, request.getLocale())) {
+            bodyOfResponse =   new GenericResponse(messages.getMessage("message.error", null, request.getLocale()), "InternalError");
+        }else {
+            bodyOfResponse = new GenericResponse("some exception","InternalError");
+        }
         return new ResponseEntity<>(bodyOfResponse, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

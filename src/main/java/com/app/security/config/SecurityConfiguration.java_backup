@@ -1,0 +1,150 @@
+/*
+package com.app.security.config;
+
+import com.app.security.repository.users.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.expression.SecurityExpressionHandler;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.FilterInvocation;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
+import static org.springframework.http.HttpMethod.*;
+import static org.springframework.http.HttpMethod.DELETE;
+
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
+@EnableMethodSecurity
+public class SecurityConfiguration {
+
+    private final JWTAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthenticationProvider authenticationProvider;
+
+
+    private final MyLogoutSuccessHandler logoutSuccessHandler;
+    private final MyCustomLoginAuthenticationSuccessHandler myAuthenticationSuccessHandler;
+    private final AuthenticationFailureHandler authenticationFailureHandler;
+
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers(new AntPathRequestMatcher("/resources/**", "/h2/**"));
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.csrf(CsrfConfigurer::disable);
+        httpSecurity.cors(CorsConfigurer::disable);
+        httpSecurity
+                //.csrf(AbstractHttpConfigurer::disable)
+                .securityContext((securityContext) -> securityContext.requireExplicitSave(true))
+                .authorizeHttpRequests(auths -> {
+                    auths
+                            //.requestMatchers(HttpMethod.GET, "/roleHierarchy")
+                            //.hasAnyRole("MANAGER", "ADMIN")
+                            //.hasRole("MANAGER")
+                            .requestMatchers(
+                                    "/api/v1/auth/**",
+                              //      "/api/v1/demo-controller/greet",
+                                    "/v2/api-docs",
+                                    "/v3/api-docs",
+                                    "/v3/api-docs/**",
+                                    "/swagger-resources",
+                                    "/swagger-resources/**",
+                                    "/configuration/ui",
+                                    "/configuration/security",
+                                    "/swagger-ui/**",
+                                    "/webjars/**",
+                                    "/swagger-ui.html",
+                                    "/login*", "/logout*",
+                                    "/user/registration*", "/expiredAccount*", "/registration*",
+                                    "/badUser*", "/forgetPassword*", "/user/resetPassword*",
+                                    "/user/savePassword*", "/updatePassword*", "/user/changePassword*")
+                            .permitAll()
+                            .requestMatchers( "/api/v1/demo-controller/greet")
+                            .hasRole("ADMIN")
+                            .requestMatchers("/api/v1/management/**")
+                            .hasAnyRole("ADMIN", "MANAGER")
+                            .requestMatchers(GET, "/api/v1/management/**")
+                            .hasAnyAuthority("ADMIN_READ", "MANAGER_READ")
+                            .requestMatchers(POST, "/api/v1/management/**")
+                            .hasAnyAuthority("ADMIN_CREATE", "MANAGER_CREATE")
+                            .requestMatchers(PUT, "/api/v1/management/**")
+                            .hasAnyAuthority("ADMIN_UPDATE", "MANAGER_UPDATE")
+                            .requestMatchers(DELETE, "/api/v1/management/**")
+                            .hasAnyAuthority("ADMIN_DELETE", "MANAGER_DELETE")
+
+                            .requestMatchers("/invalidSession*")
+                            .anonymous()
+                            .requestMatchers("/user/updatePassword*")
+                            .hasAuthority("CHANGE_PASSWORD_PRIVILEGE")
+                            .requestMatchers("/console")
+                            .hasAnyAuthority("MANAGER_READ", "ADMIN_READ")
+                            .anyRequest()
+                            .hasAnyAuthority("MANAGER_READ", "ADMIN_READ");
+                })
+                .formLogin((formLogin) -> formLogin.loginPage("/login").defaultSuccessUrl("/homepage**")
+                        .failureUrl("/login?error=true")
+                        .successHandler(myAuthenticationSuccessHandler)
+                        .failureHandler(authenticationFailureHandler)
+                        .permitAll())
+                .sessionManagement((sessionManagement) -> sessionManagement.invalidSessionUrl("/invalidSession**")
+                        .maximumSessions(1)
+                        .sessionRegistry(sessionRegistry()))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout((logout) -> logout.logoutSuccessHandler(logoutSuccessHandler)
+                        .invalidateHttpSession(true)
+                        .logoutSuccessUrl("/api/v1/auth/logout")
+                        //.logoutSuccessUrl("/logout.html?logSucc=true")
+                        .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
+                        .deleteCookies("JSESSIONID")
+                        .permitAll());
+        return httpSecurity.build();
+
+    }
+    @Bean
+    public SecurityExpressionHandler<FilterInvocation> customWebSecurityExpressionHandler() {
+        DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
+        expressionHandler.setRoleHierarchy(roleHierarchy());
+        return expressionHandler;
+    }
+
+
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        String hierarchy = "ROLE_ADMIN > ROLE_MANAGER \n ROLE_MANAGER > ROLE_USER";
+        roleHierarchy.setHierarchy(hierarchy);
+        return roleHierarchy;
+    }
+
+
+}
+*/
