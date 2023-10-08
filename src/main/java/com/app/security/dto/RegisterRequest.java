@@ -1,5 +1,6 @@
 package com.app.security.dto;
 
+import com.app.security.domain.user.Group;
 import com.app.security.domain.user.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,5 +19,5 @@ public class RegisterRequest {
     private String lastname;
     private String email;
     private String password;
-    private List<Role> role;
+    private List<Group> groups;
 }

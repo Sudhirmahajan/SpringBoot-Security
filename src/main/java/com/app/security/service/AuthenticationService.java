@@ -4,28 +4,21 @@ import com.app.security.domain.user.*;
 import com.app.security.dto.AuthenticationRequest;
 import com.app.security.dto.AuthenticationResponse;
 import com.app.security.dto.RegisterRequest;
-import com.app.security.dto.UserDTO;
-import com.app.security.repository.users.PrivilegeRepository;
-import com.app.security.repository.users.TokenRepository;
-import com.app.security.repository.users.UserRepository;
+import com.app.security.repository.users.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -38,30 +31,25 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PrivilegeRepository privilegeRepository;
-
+    private final RoleRepository roleRepository;
+    private final GroupRepository groupRepository;
     public AuthenticationResponse register(RegisterRequest payload) {
         User user = new User();
-        List<String> privileges = Arrays.asList("user:read", "user:create", "user:update", "user:delete");
-        //privilegeRepository.findAll().stream().map(Privilege::getPermission).distinct().collect(Collectors.toList());
-        List<Role> roleList = new ArrayList<>();
-        for (Role rol : payload.getRole()) {
-            Role roles = new Role();
-            roles.setName(rol.getName());
-            List<Privilege> privilegeList = new ArrayList<>();
-            for (String privilege : privileges) {
-                Privilege privilege1 = new Privilege();
-                privilege1.setPermission(privilege);
-                privilegeList.add(privilege1);
-            }
-            roles.setPrivileges(privilegeList);
-            roleList.add(roles);
-        }
+
+        List<Long> roleIds = roleRepository.findByGroupNames(payload.getGroups().stream()
+                .map(Group::getName).collect(Collectors.toList()))
+                .stream().map(Role::getRoleId).collect(Collectors.toList());
+        List<Group> groups = groupRepository.findByNameIn(payload.getGroups().stream()
+                .map(Group::getName).collect(Collectors.toList()));
+        System.out.println("printing group roles " + roleIds);
+        List<Role> roles = roleRepository.findByRoleIdIn(roleIds);
         user.setUserCode(payload.getUserCode());
         user.setFirstName(payload.getFirstname());
         user.setLastName(payload.getLastname());
         user.setEmail(payload.getEmail());
         user.setPassword(passwordEncoder.encode(payload.getPassword()));
-        user.setRoles(roleList);
+        user.setGroups(groups);
+       // user.setRoles(roles);
         User savedUser = null;
         try {
             System.out.println("before saving users in db {}, ");

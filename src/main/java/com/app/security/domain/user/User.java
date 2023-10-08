@@ -30,22 +30,26 @@ public class User implements UserDetails {
     private boolean isCredentialsNonExpired;
     private boolean isEnabled;
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    /*@ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinTable(name = "USER_ROLE_MAPPING",
             joinColumns = @JoinColumn(name = "USER_ID",
                     referencedColumnName = "userId"),
             inverseJoinColumns =@JoinColumn(name = "role_id", referencedColumnName = "roleId"))
-    private Collection<Role> roles = new ArrayList<>();
+    private Collection<Role> roles = new ArrayList<>();*/
 
-    /*@OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
-    private List<Token> token;*/
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinTable(name = "USER_GROUP_MAPPING",
+            joinColumns = @JoinColumn(name = "USER_ID",
+                    referencedColumnName = "userId"),
+            inverseJoinColumns =@JoinColumn(name = "GROUP_ID", referencedColumnName = "id"))
+    private Collection<Group> groups = new ArrayList<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        final Set<GrantedAuthority> authorities = new HashSet<GrantedAuthority>(roles.size());
-        for (Role role : roles)
-            authorities.addAll(role.getAuthorities());
-        return authorities;
+        return groups.stream()
+                .flatMap(r->r.getRoles().stream()
+                .flatMap(a->a.getAuthorities().stream()))
+                .collect(Collectors.toSet());
     }
     @Override
     public String getPassword() {
